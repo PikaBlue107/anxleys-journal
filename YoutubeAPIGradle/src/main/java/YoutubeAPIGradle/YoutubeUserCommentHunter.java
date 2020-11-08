@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -38,6 +39,7 @@ import com.google.api.services.youtube.model.Comment;
 import com.google.api.services.youtube.model.CommentSnippet;
 import com.google.api.services.youtube.model.CommentThread;
 import com.google.api.services.youtube.model.CommentThreadListResponse;
+import com.google.api.services.youtube.model.VideoListResponse;
 
 /**
  * This class uses the YouTube Data API v3 to scan a youtube video for all
@@ -60,7 +62,7 @@ public class YoutubeUserCommentHunter {
 
 	// FIXED PARAMETERS
 	// Misc
-	/** Pastebin link where the source code is held. */
+	/** GitHub link where the source code is held. */
 	private static final String CODE_PASTE = "https://github.com/PikaBlue107/anxleys-journal";
 	/** Date time format for printing out comments. */
 	private static final String DATE_TIME_FORMAT = "MMMM d, uuuu (h:mm a)";
@@ -103,6 +105,7 @@ public class YoutubeUserCommentHunter {
 	 */
 	public static YouTube getService() throws GeneralSecurityException, IOException {
 		final NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+//		Credential credential = authorize(httpTransport);
 		return new YouTube.Builder(httpTransport, JSON_FACTORY, null).setApplicationName(APPLICATION_NAME).build();
 	}
 
@@ -125,6 +128,11 @@ public class YoutubeUserCommentHunter {
 		// Then, load the "key" property from the file (in the file, it looks like
 		// "key=...")
 		final String DEVELOPER_KEY = prop.getProperty("key");
+		
+		// Get the comment count of the target video using our helper method
+		int totalComments = getCommentCount(youtubeService, DEVELOPER_KEY);
+		// Counter to total up how many comments we actually receive.
+		int receivedComments = 0;
 
 		/*
 		 * Define the API request.
@@ -147,7 +155,8 @@ public class YoutubeUserCommentHunter {
 				.setMaxResults((long) 100).setOrder("relevance");
 
 		// Initialize our comment fields
-		commentsByDay = new ExtendableGenericArray<List<Comment>>(370);	// use initial capacity of 370 for all 365 posts + buffer
+		commentsByDay = new ExtendableGenericArray<List<Comment>>(370); // use initial capacity of 370 for all 365 posts
+																		// + buffer
 		unrecognizedComments = new ArrayList<Comment>();
 
 		// Set up the next page token for the first iteration. For the first page, any
@@ -159,6 +168,9 @@ public class YoutubeUserCommentHunter {
 
 			// Execute the API call to get one page of responses.
 			CommentThreadListResponse response = request.execute();
+
+			// Add these comments to the total count
+			receivedComments += response.getItems().size();
 
 			// Loop over all of the CommentThreads we got in this page
 			for (CommentThread ct : response.getItems()) {
@@ -174,7 +186,25 @@ public class YoutubeUserCommentHunter {
 		// Done scanning in data from YouTube!
 
 		// Time to print it out all nice and pretty-like into an HTML file.
-		writeToFile(OUT_FILE);
+		writeToFile(OUT_FILE, receivedComments, totalComments);
+	}
+
+	/**
+	 * Uses the YouTube Data API v3 to get the total comment count of the target
+	 * video.
+	 * 
+	 * @return the total number of comments on the video
+	 * @throws IOException, GeneralSecurityException if any problems happen
+	 */
+	private static int getCommentCount(YouTube youtubeService, final String DEVELOPER_KEY) throws IOException, GeneralSecurityException {
+		// Define the API request
+		YouTube.Videos.List request = youtubeService.videos().list(Arrays.asList("statistics"))
+				.setId(Arrays.asList("UwxatzcYf9Q")).setKey(DEVELOPER_KEY);
+		// Run the request, save the response.
+		VideoListResponse response = request.execute();
+		// Step through the data we get to retrieve just the comment count on the one
+		// video.
+		return response.getItems().get(0).getStatistics().getCommentCount().intValue();
 	}
 
 	/**
@@ -224,7 +254,7 @@ public class YoutubeUserCommentHunter {
 	 * @param outfile the file to output the data to
 	 * @throws IOException if cannot write to the outfile
 	 */
-	private static void writeToFile(String outfile) throws IOException {
+	private static void writeToFile(String outfile, int receivedComments, int totalComments) throws IOException {
 		// Start by opening the file itself
 		BufferedWriter out = new BufferedWriter(new FileWriter(outfile));
 
@@ -233,6 +263,9 @@ public class YoutubeUserCommentHunter {
 
 		// Write the programmer info header
 		out.write("<pre>" + HEADER_NOTE + "</pre>");
+		
+		// Write the number of comments we received and the total comment count
+		out.write("<br><p>Comments scanned: " + receivedComments + "/" + totalComments + " total comments on video. (bc the YT Data API is buggy)</p>");
 
 		// Write the start of the list!
 		out.write("<h1>Anxley's 365 Day Challenge</h1>");
