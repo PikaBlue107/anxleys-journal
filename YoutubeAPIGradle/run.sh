@@ -8,12 +8,12 @@ cd ..
 git status
 git add index.html
 git add YoutubeAPIGradle/src/main/resources/index.html
-git commit -m "Update comment list"
 git status
 
 # Check with the user if we want to push
-read -r -p "Push to GitHub? y to push, any other input to cancel" doPush
+read -r -p "Commit and push to GitHub? y to push, any other input to cancel" doPush
 if [[ doPush == y ]]; then
+	git commit -m "Update comment list"
 	git push
 else
 	echo "Skipping push."
