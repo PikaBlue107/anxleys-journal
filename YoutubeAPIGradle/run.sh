@@ -11,8 +11,8 @@ git add YoutubeAPIGradle/src/main/resources/index.html
 git status
 
 # Check with the user if we want to push
-read -r -p "Commit and push to GitHub? y to push, any other input to cancel" doPush
-if [[ doPush == y ]]; then
+read -r -p "Commit and push to GitHub? y to push, any other input to cancel: " doPush
+if [[ ${doPush} == y ]]; then
 	git commit -m "Update comment list"
 	git push
 else
