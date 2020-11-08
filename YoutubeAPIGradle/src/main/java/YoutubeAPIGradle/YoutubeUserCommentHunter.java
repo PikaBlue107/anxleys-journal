@@ -61,7 +61,7 @@ public class YoutubeUserCommentHunter {
 	// FIXED PARAMETERS
 	// Misc
 	/** Pastebin link where the source code is held. */
-	private static final String CODE_PASTE = "https://pastebin.com/nw59HjjC";
+	private static final String CODE_PASTE = "https://github.com/PikaBlue107/anxleys-journal";
 	/** Date time format for printing out comments. */
 	private static final String DATE_TIME_FORMAT = "MMMM d, uuuu (h:mm a)";
 	/** Name of the application. */
@@ -324,7 +324,7 @@ public class YoutubeUserCommentHunter {
 		// Get a URL for this comment
 		String url = getURLForComment(comment);
 		// Print out URL
-		sb.append("\t\t\t<a href=" + url + ">" + prettyDate + "</a>");
+		sb.append("\t\t\t<a target=\"_blank\" href=" + url + ">" + prettyDate + "</a>");
 
 		// Return built string
 		return sb.toString();
